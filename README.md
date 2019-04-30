@@ -11,13 +11,13 @@ Where config.cfg is a plain text configuration file. The format of the config fi
 
 ``
 {
-   'data_file' : '\\resources\\tennis.csv',
+   'data_file' : './resources/tennis.csv',
    'data_project_columns' : ['Outlook', 'Temperature', 'Humidity', 'Windy', 'PlayTennis'],
    'target_attribute' : 'PlayTennis'
 }
 ``
 
 You have to specify:
- + relative path to the csv data_file
- + which columns to project from the file (useful if you have a large input file, and are only interested in a subset of columns)
+ + relative path to the data file
+ + list of features set
  + the target attribute, that you want to predict.
