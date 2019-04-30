@@ -1,8 +1,8 @@
-# python-implementation-for-building-decision-trees
+# Python Implementation for building decision trees
 python implementation of [id3 classification trees](https://en.wikipedia.org/wiki/ID3_algorithm) and [CART Classification And Regression Tree] (https://en.wikipedia.org/wiki/Decision_tree_learning) is a machine learning algorithm for building decision trees.
 
 
-## Running the code
+## Run the code
 Run the code with the python interpreter: 
 
 ```python3 id3.py ./resources/<config.cfg>```
