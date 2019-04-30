@@ -4,40 +4,64 @@ We'll write a Decision Tree Classifier, in pure Python.
 
 # For Python 2 / 3 compatability
 from __future__ import print_function
+import ast
+import csv
+import sys
+import os
 
-# Toy dataset.
-# Format: each row is an example.
-# The last column is the label.
-# The first two columns are features.
-# Feel free to play with it by adding more features & examples.
-# Interesting note: I've written this so the 2nd and 5th examples
-# have the same features, but different labels - so we can see how the
-# tree handles this case.
-training_data = [
-['Sunny','Hot','High','Weak','No'],
-['Sunny','Hot','High','Strong','No'],
-['Overcast','Hot','High','Weak','Yes'],
-['Rain','Mild','High','Weak','Yes'],
-['Rain','Cool','Normal','Weak','Yes'],
-['Rain','Cool','Normal','Strong','No'],
-['Overcast','Cool','Normal','Strong','Yes'],
-['Sunny','Mild','High','Weak','No'],
-['Sunny','Cool','Normal','Weak','Yes'],
-['Rain','Mild','Normal','Weak','Yes'],
-['Sunny','Mild','Normal','Strong','Yes'],
-['Overcast','Mild','High','Strong','Yes'],
-['Overcast','Hot','Normal','Weak','Yes'],
-['Rain','Mild','High','Strong','No']
-]
-
-# Column labels.
-# These are used only to print the tree.
-header = ["Outlook","Temperature","Humidity","Windy","PlayTennis"]
+TEST_SIZE = 6
 
 
 def unique_vals(rows, col):
     """Find the unique values for a column in a dataset."""
     return set([row[col] for row in rows])
+
+
+def load_config(config_file):
+    with open(config_file, 'r') as myfile:
+        data = myfile.read().replace('\n', '')
+    return ast.literal_eval(data)
+
+def get_header_name_to_idx_maps(headers):
+    name_to_idx = {}
+    idx_to_name = {}
+    for i in range(0, len(headers)):
+        name_to_idx[headers[i]] = i
+        idx_to_name[i] = headers[i]
+    return idx_to_name, name_to_idx
+
+def load_csv_to_header_data(filename):
+    fpath = os.path.join(os.getcwd(), filename)
+    fs = csv.reader(open(fpath))
+
+    all_row = []
+    for r in fs:
+        all_row.append(r)
+
+    headers = all_row[0]
+    idx_to_name, name_to_idx = get_header_name_to_idx_maps(headers)
+
+    data = {
+        'header': headers,
+        'rows': all_row[1:],
+        'name_to_idx': name_to_idx,
+        'idx_to_name': idx_to_name
+    }
+    return data
+
+def prepare_train_test_data(data):
+    data_size = len(data['rows'])
+    train_size = int(data_size - (data_size / TEST_SIZE))
+    train_data_row = data['rows'][0:train_size]
+    test_data_row = data['rows'][train_size:data_size]
+
+    test_data = data.copy()
+    train_data = data.copy()
+
+    test_data['rows'] = test_data_row
+    train_data['rows'] = train_data_row
+
+    return train_data, test_data
 
 #######
 # Demo:
@@ -82,9 +106,10 @@ class Question:
     question. See the demo below.
     """
 
-    def __init__(self, column, value):
+    def __init__(self, column, value, header):
         self.column = column
         self.value = value
+        self.header = header
 
     def match(self, example):
         # Compare the feature value in an example to the
@@ -102,7 +127,7 @@ class Question:
         if is_numeric(self.value):
             condition = ">="
         return "Is %s %s %s?" % (
-            header[self.column], condition, str(self.value))
+            self.header[self.column], condition, str(self.value))
 
 #######
 # Demo:
@@ -190,42 +215,8 @@ def info_gain(left, right, current_uncertainty):
     p = float(len(left)) / (len(left) + len(right))
     return current_uncertainty - p * gini(left) - (1 - p) * gini(right)
 
-#######
-# Demo:
-# Calculate the uncertainy of our training data.
-# current_uncertainty = gini(training_data)
-#
-# How much information do we gain by partioning on 'Green'?
-# true_rows, false_rows = partition(training_data, Question(0, 'Green'))
-# info_gain(true_rows, false_rows, current_uncertainty)
-#
-# What about if we partioned on 'Red' instead?
-# true_rows, false_rows = partition(training_data, Question(0,'Red'))
-# info_gain(true_rows, false_rows, current_uncertainty)
-#
-# It looks like we learned more using 'Red' (0.37), than 'Green' (0.14).
-# Why? Look at the different splits that result, and see which one
-# looks more 'unmixed' to you.
-# true_rows, false_rows = partition(training_data, Question(0,'Red'))
-#
-# Here, the true_rows contain only 'Grapes'.
-# true_rows
-#
-# And the false rows contain two types of fruit. Not too bad.
-# false_rows
-#
-# On the other hand, partitioning by Green doesn't help so much.
-# true_rows, false_rows = partition(training_data, Question(0,'Green'))
-#
-# We've isolated one apple in the true rows.
-# true_rows
-#
-# But, the false-rows are badly mixed up.
-# false_rows
-#######
 
-
-def find_best_split(rows):
+def find_best_split(rows, header):
     """Find the best question to ask by iterating over every feature / value
     and calculating the information gain."""
     best_gain = 0  # keep track of the best information gain
@@ -239,7 +230,7 @@ def find_best_split(rows):
 
         for val in values:  # for each value
 
-            question = Question(col, val)
+            question = Question(col, val, header)
 
             # try splitting the dataset
             true_rows, false_rows = partition(rows, question)
@@ -257,17 +248,8 @@ def find_best_split(rows):
             # toy dataset.
             if gain >= best_gain:
                 best_gain, best_question = gain, question
-    #print (best_gain)
-    #print (best_question)
     return best_gain, best_question
 
-#######
-# Demo:
-# Find the best question to ask first for our toy dataset.
-# best_gain, best_question = find_best_split(training_data)
-# FYI: is color == Red is just as good. See the note in the code above
-# where I used '>='.
-#######
 
 class Leaf:
     """A Leaf node classifies data.
@@ -293,7 +275,7 @@ class Decision_Node:
         self.false_branch = false_branch
 
 
-def build_tree(rows):
+def build_tree(rows, header):
     """Builds the tree.
     Rules of recursion: 1) Believe that it works. 2) Start by checking
     for the base case (no further information gain). 3) Prepare for
@@ -303,7 +285,7 @@ def build_tree(rows):
     # Try partitioing the dataset on each of the unique attribute,
     # calculate the information gain,
     # and return the question that produces the highest gain.
-    gain, question = find_best_split(rows)
+    gain, question = find_best_split(rows, header)
 
     # Base case: no further info gain
     # Since we can ask no further questions,
@@ -316,10 +298,10 @@ def build_tree(rows):
     true_rows, false_rows = partition(rows, question)
 
     # Recursively build the true branch.
-    true_branch = build_tree(true_rows)
+    true_branch = build_tree(true_rows, header)
 
     # Recursively build the false branch.
-    false_branch = build_tree(false_rows)
+    false_branch = build_tree(false_rows, header)
 
     # Return a Question node.
     # This records the best feature / value to ask at this point,
@@ -381,49 +363,30 @@ def print_leaf(counts):
     return probs
 
 
-#######
-# Demo:
-# Printing that a bit nicer
-# print_leaf(classify(training_data[0], my_tree))
-#######
-
-#######
-# Demo:
-# On the second example, the confidence is lower
-# print_leaf(classify(training_data[1], my_tree))
-#######
-
 def print_tree_1(tree):
     print(tree.question)
 
+
 if __name__ == '__main__':
 
-    my_tree = build_tree(training_data)
+    argv = sys.argv
+    print('**************************************')
+    print("Command line args are {}: ".format(argv))
 
+    config = load_config(argv[1])
+    data = load_csv_to_header_data(config['data_file'])
+    train_data, test_data = prepare_train_test_data(data)
+    header = data['header']
+
+    training_data = train_data['rows']
+
+    # print('training_data', training_data)
+    my_tree = build_tree(training_data, header)
     print_tree(my_tree)
 
-    # Evaluate
-    testing_data = [
-['Sunny','Hot','High','Weak','No'],
-['Sunny','Hot','High','Strong','No'],
-['Overcast','Hot','High','Weak','Yes'],
-['Rain','Mild','High','Weak','Yes'],
-['Rain','Cool','Normal','Weak','Yes'],
-['Rain','Cool','Normal','Strong','No'],
-['Overcast','Cool','Normal','Strong','Yes'],
-['Sunny','Mild','High','Weak','No'],
-['Sunny','Cool','Normal','Weak','Yes'],
-['Rain','Mild','Normal','Weak','Yes'],
-['Sunny','Mild','Normal','Strong','Yes'],
-['Overcast','Mild','High','Strong','Yes'],
-['Overcast','Hot','Normal','Weak','Yes'],
-['Rain','Mild','High','Strong','No']]
+    testing_data = test_data['rows']
 
     for row in testing_data:
         print ("Actual: %s. Predicted: %s" %
                (row[-1], print_leaf(classify(row, my_tree))))
 
-# Next steps
-# - add support for missing (or unseen) attributes
-# - prune the tree to prevent overfitting
-# - add support for regression
