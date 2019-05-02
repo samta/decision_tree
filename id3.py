@@ -6,6 +6,7 @@ import os
 from functools import *
 TEST_SIZE = 6
 
+
 def load_csv_to_header_data(filename):
     fpath = os.path.join(os.getcwd(), filename)
     fs = csv.reader(open(fpath))
@@ -189,7 +190,7 @@ def load_config(config_file):
     return ast.literal_eval(data)
 
 
-def pretty_print_tree_1(root, tree):
+def print_tree(root, tree):
     stack = []
     rules = set()
 
@@ -211,6 +212,7 @@ def pretty_print_tree_1(root, tree):
     print(os.linesep.join(rules))
     return rules
 
+
 def predict(query, tree, default=1):
     # 1.
     for key in list(query.keys()):
@@ -227,6 +229,7 @@ def predict(query, tree, default=1):
                 return predict(query, result)
             else:
                 return result
+
 
 def prepare_train_test_data(data):
     data_size = len(data['rows'])
@@ -324,7 +327,7 @@ def main():
     data = load_csv_to_header_data(config['data_file'])
     train_data, test_data = prepare_train_test_data(data)
     print ('**************************************')
-    print ('trainind data: %s training data size: %s' % (train_data, len(train_data['rows'])))
+    print ('training data: %s training data size: %s' % (train_data, len(train_data['rows'])))
     print ('**************************************')
     print ('test data: %s test data size: %s' % (test_data, len(test_data['rows'])))
 
@@ -341,12 +344,13 @@ def main():
     root = id3(train_data, uniqs, remaining_attributes, target_attribute)
 
     tree = []
-    rules = pretty_print_tree_1(root, tree)
+    rules = print_tree(root, tree)
     print ('**************************************')
     accuracy = test_tree(rules, test_data, target_attribute)
     print ('**************************************')
     print ('Accuracy:', accuracy)
     print ('**************************************')
+
 
 if __name__ == "__main__":
     main()
