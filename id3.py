@@ -374,6 +374,9 @@ def decision_tree():
     logger.info('*************************************************************************')
     logger.info('DECISION:>>')
     rules = print_tree(root, tree)
+
+    logger.info('*************************************************************************')
+    logger.info('TEST DATA >> %s' % test_data)
     logger.info('*************************************************************************')
     accuracy = test_tree(rules, test_data, target_attribute)
     logger.info('*************************************************************************')
