@@ -5,8 +5,9 @@ python implementation of [id3 classification trees](https://en.wikipedia.org/wik
 ## Run the code
 Run the code with the python interpreter: 
 
-```python3 id3.py ./resources/<config.cfg>```
-```python3 cart.py ./resources/<config.cfg>```
+```>> python3 id3.py ./resources/<config.cfg>```
+
+```>> python3 cart.py ./resources/<config.cfg>```
 
 Where config.cfg is a plain text configuration file. The format of the config file is a python abstract syntax tree representing a dict with the following fields:
 
